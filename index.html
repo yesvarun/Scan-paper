@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1a1a" />
+  <meta name="description" content="Open-source Instapaper-style reader for scanned newspaper PDFs. Client-side OCR with Tesseract.js. Privacy-first PWA." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>ScanPaper — Newspaper OCR Reader</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <!-- Tesseract.js (exposes global Tesseract) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-inner">
+        <h1 class="logo" onclick="showView('home')">
+          <span class="logo-icon">📰</span> ScanPaper
+        </h1>
+        <nav class="nav-actions">
+          <button id="btn-dict" class="icon-btn" title="Saved words" onclick="showView('dictionary')">
+            📖 <span class="badge" id="dict-badge" hidden>0</span>
+          </button>
+          <button id="btn-theme" class="icon-btn" title="Toggle theme" onclick="toggleTheme()">🌓</button>
+          <button id="btn-install" class="icon-btn" title="Install PWA" hidden>⬇️</button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- HOME / UPLOAD -->
+    <main id="view-home" class="view active">
+      <section class="hero">
+        <h2>Turn scanned newspapers into clean reading articles</h2>
+        <p class="subtitle">
+          100% client-side · Open source · Privacy first<br />
+          Upload a scanned PDF → OCR + article segmentation → Instapaper-style reader
+        </p>
+      </section>
+
+      <div class="upload-zone" id="drop-zone">
+        <div class="upload-content">
+          <div class="upload-icon">📄</div>
+          <p>Drop a scanned newspaper PDF here</p>
+          <p class="hint">or click to browse</p>
+          <input type="file" id="file-input" accept="application/pdf,.pdf" hidden />
+          <button class="btn primary" onclick="document.getElementById('file-input').click()">
+            Choose PDF
+          </button>
+        </div>
+      </div>
+
+      <section class="options-panel">
+        <h3>OCR Options</h3>
+        <div class="option-row">
+          <label for="lang-select">Language</label>
+          <select id="lang-select">
+            <option value="eng" selected>English</option>
+            <option value="eng+spa">English + Spanish</option>
+            <option value="eng+fra">English + French</option>
+            <option value="eng+deu">English + German</option>
+            <option value="eng+hin">English + Hindi</option>
+            <option value="chi_sim">Chinese (Simplified)</option>
+            <option value="jpn">Japanese</option>
+            <option value="ara">Arabic</option>
+          </select>
+        </div>
+        <div class="option-row">
+          <label for="dpi-select">Render DPI (higher = better accuracy, slower)</label>
+          <select id="dpi-select">
+            <option value="1.5">150 DPI (fast)</option>
+            <option value="2" selected>200 DPI (recommended)</option>
+            <option value="2.5">250 DPI</option>
+            <option value="3">300 DPI (best quality)</option>
+          </select>
+        </div>
+        <div class="option-row">
+          <label for="psm-select">Page Segmentation Mode</label>
+          <select id="psm-select">
+            <option value="1">Auto + OSD (good for multi-column)</option>
+            <option value="3" selected>Fully automatic</option>
+            <option value="4">Single column</option>
+            <option value="6">Single uniform block</option>
+            <option value="11">Sparse text</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="features">
+        <div class="feature">
+          <span>🔒</span>
+          <h4>Private</h4>
+          <p>Files never leave your device. Everything runs in the browser.</p>
+        </div>
+        <div class="feature">
+          <span>⚡</span>
+          <h4>Background OCR</h4>
+          <p>Progress bar, live log, time remaining estimate while you wait.</p>
+        </div>
+        <div class="feature">
+          <span>📖</span>
+          <h4>Instapaper style</h4>
+          <p>Clean, distraction-free reading with adjustable typography.</p>
+        </div>
+        <div class="feature">
+          <span>📚</span>
+          <h4>Built-in Dictionary</h4>
+          <p>Long-press or click any word to look up & save definitions.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- PROCESSING -->
+    <main id="view-processing" class="view">
+      <div class="processing-card">
+        <h2>Converting newspaper…</h2>
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-meta">
+            <span id="progress-pct">0%</span>
+            <span id="progress-time">—</span>
+          </div>
+        </div>
+        <div class="eta" id="eta-text">Estimating time…</div>
+        <div class="log-panel">
+          <div class="log-header">Live log</div>
+          <pre id="log-output"></pre>
+        </div>
+        <button class="btn danger" id="btn-cancel" onclick="cancelProcessing()">Cancel</button>
+      </div>
+    </main>
+
+    <!-- RESULTS LIST -->
+    <main id="view-results" class="view">
+      <div class="results-header">
+        <h2 id="results-title">Extracted Articles</h2>
+        <p id="results-meta"></p>
+        <div class="results-actions">
+          <button class="btn secondary" onclick="showView('home')">← New PDF</button>
+          <button class="btn primary" onclick="exportAllText()">Export all text</button>
+        </div>
+      </div>
+      <div id="articles-list" class="articles-grid"></div>
+    </main>
+
+    <!-- READER -->
+    <main id="view-reader" class="view">
+      <div class="reader-toolbar">
+        <button class="icon-btn" onclick="showView('results')" title="Back">←</button>
+        <div class="reader-controls">
+          <button class="icon-btn" onclick="changeFontSize(-1)" title="Smaller">A−</button>
+          <button class="icon-btn" onclick="changeFontSize(1)" title="Larger">A+</button>
+          <button class="icon-btn" onclick="toggleReaderTheme()" title="Theme">🌓</button>
+        </div>
+        <button class="icon-btn" onclick="saveCurrentArticle()" title="Save article">💾</button>
+      </div>
+      <article id="reader-content" class="reader-body">
+        <h1 id="reader-title"></h1>
+        <div id="reader-meta" class="reader-meta"></div>
+        <div id="reader-text" class="reader-text"></div>
+      </article>
+    </main>
+
+    <!-- DICTIONARY -->
+    <main id="view-dictionary" class="view">
+      <div class="dict-header">
+        <h2>Saved Words</h2>
+        <button class="btn secondary" onclick="showView('home')">← Back</button>
+      </div>
+      <div id="dict-list" class="dict-list"></div>
+      <p id="dict-empty" class="empty-state" hidden>No words saved yet. Long-press or click any word while reading.</p>
+    </main>
+  </div>
+
+  <!-- DICTIONARY POPUP -->
+  <div id="dict-popup" class="dict-popup" hidden>
+    <div class="dict-popup-inner">
+      <button class="close-btn" onclick="closeDictPopup()">×</button>
+      <h3 id="dict-word"></h3>
+      <div id="dict-phonetic" class="phonetic"></div>
+      <div id="dict-meanings"></div>
+      <button class="btn primary" id="btn-save-word" onclick="saveWordFromPopup()">Save word</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "name": "ScanPaper — Newspaper OCR Reader",
+  "short_name": "ScanPaper",
+  "description": "Open-source Instapaper-style reader for scanned newspaper PDFs. Client-side OCR with Tesseract.js.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7f5f0",
+  "theme_color": "#1a1a1a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["news", "productivity", "utilities"],
+  "lang": "en"
+}

@@ -561,10 +561,14 @@ html, body {
   inset: 0;
   background: rgba(0,0,0,0.45);
   z-index: 200;
-  display: flex;
+  display: none;
   align-items: flex-end;
   justify-content: center;
   padding: 16px;
+}
+
+.dict-popup:not([hidden]) {
+  display: flex;
 }
 
 .dict-popup-inner {
